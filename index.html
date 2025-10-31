@@ -286,6 +286,9 @@ function pickMatter(device, matter, btn){
   deviceEl.querySelectorAll('.matter-btn').forEach(b => b.classList.remove('selected'));
   if (btn) btn.classList.add('selected');
 
+  // hide highlight instantly after click
+  if (btn) setTimeout(() => btn.classList.remove('selected'), 10);
+
   // MODIFIED: do NOT show immediately — store it first
   pendingDisplay[device] = `<img src="${matter}.png" alt="${matter}" style="width:110px; height:110px; border-radius:12px;">`;
   document.getElementById('matterDisplay' + device).innerHTML = ""; // ADDED: hide selection
