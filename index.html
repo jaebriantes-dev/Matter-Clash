@@ -273,15 +273,23 @@ let choices = {1: null, 2: null};
 let ready = {1:false, 2:false};
 let controlsDisabled = false;
 
+// ADDED: hide display until reveal time
+let pendingDisplay = {1:null,2:null}; // ADDED
+
 function getMatterAudio(m){ return document.getElementById(m + "Audio"); }
 
 function pickMatter(device, matter, btn){
   if (controlsDisabled) return;
   choices[device] = matter;
+
   const deviceEl = document.getElementById('device' + device);
   deviceEl.querySelectorAll('.matter-btn').forEach(b => b.classList.remove('selected'));
   if (btn) btn.classList.add('selected');
-  document.getElementById('matterDisplay' + device).innerHTML = `<img src="${matter}.png" alt="${matter}" style="width:110px; height:110px; border-radius:12px;">`;
+
+  // MODIFIED: do NOT show immediately — store it first
+  pendingDisplay[device] = `<img src="${matter}.png" alt="${matter}" style="width:110px; height:110px; border-radius:12px;">`;
+  document.getElementById('matterDisplay' + device).innerHTML = ""; // ADDED: hide selection
+
   document.getElementById('ready' + device).style.display = 'inline-block';
   try {
     const a = getMatterAudio(matter);
@@ -299,6 +307,11 @@ function setReady(device){
   btn.innerText = 'Ready ✔';
   btn.disabled = true;
   if (ready[1] && ready[2]) {
+    
+    // ADDED: show picks only after both ready
+    document.getElementById('matterDisplay1').innerHTML = pendingDisplay[1];
+    document.getElementById('matterDisplay2').innerHTML = pendingDisplay[2];
+
     lockControlsBeforeCountdown();
     startCountdown();
   }
@@ -403,6 +416,8 @@ function restartGame(){
   document.getElementById('overlay').style.display='none';
   document.getElementById('mainContent').classList.remove('blurred');
   choices={1:null,2:null};ready={1:false,2:false};controlsDisabled=false;
+  pendingDisplay={1:null,2:null}; // ADDED RESET
+
   for(let i=1;i<=2;i++){
     document.getElementById('matterDisplay'+i).innerHTML='';
     document.querySelectorAll('#device'+i+' .matter-btn').forEach(b=>{b.classList.remove('selected');b.disabled=false;});
