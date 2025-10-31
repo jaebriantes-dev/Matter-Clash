@@ -1,14 +1,29 @@
 const socket = io();
-let myDevice = null;
 let myNickname = prompt("Enter your nickname:");
+let myDevice = null;
 let myMatter = null;
 
-// Choose device button
+// Choose a device (1 or 2)
 document.querySelectorAll(".device-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     myDevice = btn.dataset.device;
-    socket.emit("chooseDevice", { device: myDevice, nickname: myNickname });
+    socket.emit("chooseDevice", { nickname: myNickname, device: myDevice });
   });
+});
+
+// When players list updates
+socket.on("updatePlayers", (players) => {
+  const playerList = Object.values(players);
+  console.log("Players connected:", playerList);
+
+  // Show your name
+  document.getElementById("myName").innerText = myNickname;
+
+  // Show opponent name if exists
+  const opponent = playerList.find(p => p.nickname !== myNickname);
+  document.getElementById("opponentName").innerText = opponent ? opponent.nickname : "Waiting...";
+
+  // Check if both are ready (server also sends bothReady event)
 });
 
 // Pick matter
@@ -17,7 +32,7 @@ function pickMatter(matter, btn) {
   myMatter = matter;
   document.querySelectorAll(".matter-btn").forEach(b => b.classList.remove("selected"));
   btn.classList.add("selected");
-  socket.emit("matterChosen", { matter });
+  socket.emit("matterChosen", matter);
 }
 
 // Ready button
@@ -28,27 +43,16 @@ function readyUp() {
   document.getElementById("readyBtn").disabled = true;
 }
 
-// Show nicknames and player count
-socket.on("updatePlayers", (players) => {
-  const others = Object.values(players).filter(p => p.nickname !== myNickname);
-  if (others.length > 0) {
-    document.getElementById("opponentName").innerText = others[0].nickname;
-  }
-  document.getElementById("myName").innerText = myNickname;
-});
-
-// When both ready, start the battle
-socket.on("bothReady", (data) => {
-  const [p1, p2] = data.players;
+// When both ready
+socket.on("bothReady", ({ players }) => {
+  const [p1, p2] = players;
   const winner = getWinner(p1.matter, p2.matter);
+  const winnerName = winner === "draw" ? "Draw" : (winner === p1.matter ? p1.nickname : p2.nickname);
 
-  // Show only results, not picks
   document.body.innerHTML = `
     <div class="result-screen">
       <h2>${p1.nickname} vs ${p2.nickname}</h2>
-      <p>${p1.nickname} chose ${myNickname === p1.nickname ? "your choice" : "???"}</p>
-      <p>${p2.nickname} chose ${myNickname === p2.nickname ? "your choice" : "???"}</p>
-      <h1>${winner === "draw" ? "It's a Draw!" : winner + " Wins!"}</h1>
+      <h3>${winnerName === "Draw" ? "It's a Draw!" : winnerName + " Wins!"}</h3>
       <button onclick="window.location.reload()">Restart</button>
     </div>
   `;
