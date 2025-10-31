@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -12,25 +11,54 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, "public")));
 
-let players = {}; // store device choices
+let players = {}; // { socket.id: { device, nickname, matter, ready } }
 
 io.on("connection", (socket) => {
-  console.log("A player connected:", socket.id);
+  console.log("Player connected:", socket.id);
 
-  socket.on("chooseDevice", (device) => {
-    players[socket.id] = device;
-    console.log(`Player ${socket.id} chose ${device}`);
+  // Handle nickname and device selection
+  socket.on("chooseDevice", (data) => {
+    players[socket.id] = { 
+      device: data.device, 
+      nickname: data.nickname || "Player", 
+      matter: null, 
+      ready: false 
+    };
     io.emit("updatePlayers", players);
   });
 
-  socket.on("matterChosen", (data) => {
-    io.emit("matterResult", data); // send result to everyone
+  // Player picks a matter
+  socket.on("matterChosen", ({ matter }) => {
+    if (players[socket.id]) {
+      players[socket.id].matter = matter;
+      players[socket.id].ready = false;
+      io.emit("playerUpdated", { id: socket.id, nickname: players[socket.id].nickname });
+    }
   });
 
+  // Player presses "Ready"
+  socket.on("playerReady", () => {
+    if (players[socket.id]) {
+      players[socket.id].ready = true;
+      checkBothReady();
+    }
+  });
+
+  // When one disconnects
   socket.on("disconnect", () => {
     delete players[socket.id];
     io.emit("updatePlayers", players);
   });
+
+  function checkBothReady() {
+    const all = Object.values(players);
+    if (all.length === 2 && all.every(p => p.ready && p.matter)) {
+      // Send result only after both are ready
+      io.emit("bothReady", {
+        players: all.map(p => ({ nickname: p.nickname, matter: p.matter }))
+      });
+    }
+  }
 });
 
 const PORT = process.env.PORT || 3000;
