@@ -1,508 +1,417 @@
 <!DOCTYPE html>
-<html lang="en" class="">
+<html lang="en">
 <head>
-<script src="/socket.io/socket.io.js"></script>
-<script src="script.js"></script>
-<script>window.livecodes = window.livecodes || {};</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Matter Clash</title>
-<meta name="title" content="DeepAI Code Snippet">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style id="__livecodes_styles__"></style>
-<script src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js" async></script>
-<script type="importmap">{
-  "imports": {}
-}</script>
+<style>
+:root{
+  --accent:#1e40af;
+  --glass: rgba(255,255,255,0.06);
+  --card-border: rgba(255,255,255,0.12);
+  --text: #E6EEF8;
+}
+html,body{
+  height:100%;
+  margin:0;
+  font-family: "Poppins", system-ui, sans-serif;
+  background: linear-gradient(135deg, #000000, #061640);
+  color: var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+.wrap{
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:28px 20px 60px;
+  box-sizing:border-box;
+}
+h1{
+  margin:6px 0 18px;
+  font-size:1.8rem;
+  text-align:center;
+  text-shadow:0 0 14px rgba(0,120,255,0.08);
+}
+.mainContent{
+  width:100%;
+  max-width:980px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+}
+.device-container{
+  width:100%;
+  display:flex;
+  gap:24px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+.device{
+  width:260px;
+  background:var(--glass);
+  border:1px solid var(--card-border);
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 6px 22px rgba(0,0,0,0.45);
+  text-align:center;
+  backdrop-filter: blur(6px);
+}
+.device h3{
+  margin:4px 0 10px;
+  font-size:1.05rem;
+}
+.matter-row{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin-bottom:8px;
+}
+.matter-btn{
+  background:none;
+  border: none;
+  padding:4px;
+  cursor:pointer;
+  border-radius:12px;
+  transition: transform .18s ease, box-shadow .18s ease;
+  position:relative;
+}
+.matter-btn img{
+  width:84px;
+  height:84px;
+  border-radius:10px;
+  display:block;
+  object-fit:cover;
+  border:2px solid transparent;
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));
+}
+.matter-btn:hover{ transform: translateY(-4px); }
+.matter-btn.selected img{
+  box-shadow: 0 8px 30px rgba(0,100,255,0.25);
+  border-color: rgba(0,120,255,0.6);
+  transform: scale(1.03);
+}
+.matter-display{
+  min-height:110px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-top:6px;
+}
+.ready-btn{
+  margin-top:10px;
+  display:none;
+  padding:8px 16px;
+  border-radius:10px;
+  background:var(--accent);
+  border:none;
+  color:#fff;
+  cursor:pointer;
+}
+.center-controls{
+  margin-top:18px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  width:100%;
+}
+#countdown{
+  font-size:3.2rem;
+  display:none;
+  color:#fff;
+  text-shadow:0 0 24px rgba(0,150,255,0.12);
+  font-weight:700;
+}
+#fightImage{
+  position:fixed;
+  left:50%;
+  top:42%;
+  transform: translate(-50%,-50%) scale(0);
+  z-index:120;
+  pointer-events:none;
+  transition: transform .4s ease, opacity .35s ease;
+  opacity:0;
+  width:280px;
+  max-width:70%;
+}
+#fightImage.show{
+  transform: translate(-50%,-50%) scale(1.05);
+  opacity:1;
+}
+.overlay{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:200;
+  pointer-events:none;
+}
+.resultCard{
+  width:92%;
+  max-width:760px;
+  background: rgba(0,0,0,0.82);
+  border-radius:18px;
+  padding:22px;
+  color:#fff;
+  text-align:center;
+  box-shadow:0 18px 60px rgba(1,8,32,0.7);
+  pointer-events: auto;
+}
+.resultCard img.topWinner{
+  width:140px;
+  height:140px;
+  object-fit:cover;
+  border-radius:12px;
+  margin:0 auto 14px;
+  display:block;
+}
+.resultCard .twoImgs{
+  display:flex;
+  gap:18px;
+  justify-content:center;
+  align-items:center;
+  margin-bottom:8px;
+}
+.resultText{
+  font-size:1rem;
+  line-height:1.5;
+  margin-bottom:16px;
+}
+.restartBtn{
+  padding:10px 20px;
+  background:var(--accent);
+  border:none;
+  color:white;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:600;
+}
+.blurred{ filter: blur(5px) saturate(.95); pointer-events:none; user-select:none; }
+@keyframes shakeY {
+  0%{ transform: translateY(0); }
+  20%{ transform: translateY(-12px); }
+  40%{ transform: translateY(8px); }
+  60%{ transform: translateY(-6px); }
+  80%{ transform: translateY(4px); }
+  100%{ transform: translateY(0); }
+}
+.shake{ animation: shakeY .45s ease-in-out 4; }
+.ui-disabled *{ pointer-events:none !important; opacity:0.9; }
+@media (max-width:640px){
+  .device{ width:90%; }
+  .matter-btn img{ width:72px; height:72px;}
+  #countdown{ font-size:2.6rem; }
+}
+</style>
 </head>
 <body>
-
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Two Device Matter Battle</title>
-<style>
-  :root{
-    --accent:#1e40af;
-    --glass: rgba(255,255,255,0.06);
-    --card-border: rgba(255,255,255,0.12);
-    --text: #E6EEF8;
-  }
-
-  html,body{
-    height:100%;
-    margin:0;
-    font-family: "Poppins", system-ui, sans-serif;
-    background: linear-gradient(135deg, #000000, #061640);
-    color: var(--text);
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-  }
-
-  .wrap{
-    min-height:100%;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    padding:28px 20px 60px;
-    box-sizing:border-box;
-  }
-
-  h1{
-    margin:6px 0 18px;
-    font-size:1.8rem;
-    text-align:center;
-    text-shadow:0 0 14px rgba(0,120,255,0.08);
-  }
-
-  .mainContent{
-    width:100%;
-    max-width:980px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:18px;
-  }
-
-  .device-container{
-    width:100%;
-    display:flex;
-    gap:24px;
-    justify-content:center;
-    flex-wrap:wrap;
-  }
-
-  .device{
-    width:260px;
-    background:var(--glass);
-    border:1px solid var(--card-border);
-    border-radius:16px;
-    padding:18px;
-    box-shadow:0 6px 22px rgba(0,0,0,0.45);
-    text-align:center;
-    backdrop-filter: blur(6px);
-  }
-
-  .device h3{ margin:4px 0 10px; font-size:1.05rem; }
-  .nick{
-    width:86%;
-    padding:8px 10px;
-    border-radius:10px;
-    border: none;
-    margin-bottom:12px;
-    background: rgba(255,255,255,0.06);
-    color:var(--text);
-    outline:none;
-    text-align:center;
-  }
-
-  .matter-row{ display:flex; justify-content:center; gap:8px; margin-bottom:8px; }
-  .matter-btn{
-    background:none;
-    border: none;
-    padding:4px;
-    cursor:pointer;
-    border-radius:12px;
-    transition: transform .18s ease, box-shadow .18s ease;
-    position:relative;
-  }
-  .matter-btn img{
-    width:84px;
-    height:84px;
-    border-radius:10px;
-    display:block;
-    object-fit:cover;
-    border:2px solid transparent;
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));
-  }
-  .matter-btn:hover{ transform: translateY(-4px); }
-  .matter-btn.selected img{
-    box-shadow: 0 8px 30px rgba(0,100,255,0.25);
-    border-color: rgba(0,120,255,0.6);
-    transform: scale(1.03);
-  }
-
-  .matter-display{
-    min-height:110px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    margin-top:6px;
-  }
-
-  .ready-btn{
-    margin-top:10px;
-    display:none;
-    padding:8px 16px;
-    border-radius:10px;
-    background:var(--accent);
-    border:none;
-    color:#fff;
-    cursor:pointer;
-  }
-
-  .center-controls{
-    margin-top:18px;
-    display:flex;
-    gap:12px;
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-    width:100%;
-  }
-
-  #countdown{
-    font-size:3.2rem;
-    display:none;
-    color:#fff;
-    text-shadow:0 0 24px rgba(0,150,255,0.12);
-    font-weight:700;
-  }
-
-  #fightImage{
-    position:fixed;
-    left:50%;
-    top:42%;
-    transform: translate(-50%,-50%) scale(0);
-    z-index:120;
-    pointer-events:none;
-    transition: transform .4s ease, opacity .35s ease;
-    opacity:0;
-    width:280px;
-    max-width:70%;
-  }
-  #fightImage.show{
-    transform: translate(-50%,-50%) scale(1.05);
-    opacity:1;
-  }
-
-  .overlay{
-    position:fixed;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:200;
-    pointer-events:none;
-  }
-
-  .resultCard{
-    width:92%;
-    max-width:760px;
-    background: rgba(0,0,0,0.82);
-    border-radius:18px;
-    padding:22px;
-    color:#fff;
-    text-align:center;
-    box-shadow:0 18px 60px rgba(1,8,32,0.7);
-    pointer-events: auto;
-  }
-
-  .resultCard img.topWinner{
-    width:140px;
-    height:140px;
-    object-fit:cover;
-    border-radius:12px;
-    margin:0 auto 14px;
-    display:block;
-  }
-
-  .resultCard .twoImgs{
-    display:flex;
-    gap:18px;
-    justify-content:center;
-    align-items:center;
-    margin-bottom:8px;
-  }
-
-  .resultText{
-    font-size:1rem;
-    line-height:1.5;
-    margin-bottom:16px;
-  }
-
-  .restartBtn{
-    padding:10px 20px;
-    background:var(--accent);
-    border:none;
-    color:white;
-    border-radius:12px;
-    cursor:pointer;
-    font-weight:600;
-  }
-
-  .blurred{ filter: blur(5px) saturate(.95); pointer-events:none; user-select:none; }
-  @keyframes shakeY {
-    0%{ transform: translateY(0); }
-    20%{ transform: translateY(-12px); }
-    40%{ transform: translateY(8px); }
-    60%{ transform: translateY(-6px); }
-    80%{ transform: translateY(4px); }
-    100%{ transform: translateY(0); }
-  }
-  .shake{ animation: shakeY .45s ease-in-out 4; }
-  .ui-disabled *{ pointer-events:none !important; opacity:0.9; }
-  @media (max-width:640px){
-    .device{ width:90%; }
-    .matter-btn img{ width:72px; height:72px;}
-    #countdown{ font-size:2.6rem; }
-  }
-</style>
-
 <div class="wrap">
-<h1>Matter Clash</h1>
-
-<div class="mainContent" id="mainContent">
-  <div class="device-container">
-    <!-- Device 1 -->
-    <div class="device" id="device1">
-      <h3>Device 1</h3>
-      <input id="nickname1" class="nick" type="text" placeholder="Enter Nickname (Device 1)">
-      <div class="matter-row">
-        <button class="matter-btn" data-matter="solid" onclick="pickMatter(1,'solid', this)"><img src="solid.png" alt="Solid"></button>
-        <button class="matter-btn" data-matter="liquid" onclick="pickMatter(1,'liquid', this)"><img src="liquid.png" alt="Liquid"></button>
-        <button class="matter-btn" data-matter="gas" onclick="pickMatter(1,'gas', this)"><img src="gas.png" alt="Gas"></button>
+  <h1>Matter Clash</h1>
+  <div class="mainContent" id="mainContent">
+    <div class="device-container">
+      <!-- Device 1 -->
+      <div class="device" id="device1">
+        <h3>Device 1</h3>
+        <div class="matter-row">
+          <button class="matter-btn" data-matter="solid" onclick="pickMatter(1,'solid', this)"><img src="solid.png" alt="Solid"></button>
+          <button class="matter-btn" data-matter="liquid" onclick="pickMatter(1,'liquid', this)"><img src="liquid.png" alt="Liquid"></button>
+          <button class="matter-btn" data-matter="gas" onclick="pickMatter(1,'gas', this)"><img src="gas.png" alt="Gas"></button>
+        </div>
+        <div id="matterDisplay1" class="matter-display"></div>
+        <button id="ready1" class="ready-btn" onclick="setReady(1)">Ready</button>
       </div>
-      <div id="matterDisplay1" class="matter-display"></div>
-      <button id="ready1" class="ready-btn" onclick="setReady(1)">Ready</button>
-    </div>
 
-    <!-- Device 2 -->
-    <div class="device" id="device2">
-      <h3>Device 2</h3>
-      <input id="nickname2" class="nick" type="text" placeholder="Enter Nickname (Device 2)">
-      <div class="matter-row">
-        <button class="matter-btn" data-matter="solid" onclick="pickMatter(2,'solid', this)"><img src="solid.png" alt="Solid"></button>
-        <button class="matter-btn" data-matter="liquid" onclick="pickMatter(2,'liquid', this)"><img src="liquid.png" alt="Liquid"></button>
-        <button class="matter-btn" data-matter="gas" onclick="pickMatter(2,'gas', this)"><img src="gas.png" alt="Gas"></button>
+      <!-- Device 2 -->
+      <div class="device" id="device2">
+        <h3>Device 2</h3>
+        <div class="matter-row">
+          <button class="matter-btn" data-matter="solid" onclick="pickMatter(2,'solid', this)"><img src="solid.png" alt="Solid"></button>
+          <button class="matter-btn" data-matter="liquid" onclick="pickMatter(2,'liquid', this)"><img src="liquid.png" alt="Liquid"></button>
+          <button class="matter-btn" data-matter="gas" onclick="pickMatter(2,'gas', this)"><img src="gas.png" alt="Gas"></button>
+        </div>
+        <div id="matterDisplay2" class="matter-display"></div>
+        <button id="ready2" class="ready-btn" onclick="setReady(2)">Ready</button>
       </div>
-      <div id="matterDisplay2" class="matter-display"></div>
-      <button id="ready2" class="ready-btn" onclick="setReady(2)">Ready</button>
+    </div>
+
+    <div class="center-controls">
+      <div id="countdown">3</div>
     </div>
   </div>
 
-  <div class="center-controls">
-    <div id="countdown">3</div>
-  </div>
-</div>
+  <img id="fightImage" src="Fight.png" alt="Fight!">
 
-<img id="fightImage" src="Fight.png" alt="Fight!">
-<div class="overlay" id="overlay">
-  <div class="resultCard" id="resultCard" role="dialog" aria-modal="true">
-    <img id="topWinnerImg" class="topWinner" src="" alt="Winner image" style="display:none;">
-    <div id="twoImgs" class="twoImgs" style="display:none;">
-      <img id="drawImg1" src="" alt="" style="width:120px;height:120px;border-radius:10px;">
-      <img id="drawImg2" src="" alt="" style="width:120px;height:120px;border-radius:10px;">
+  <div class="overlay" id="overlay">
+    <div class="resultCard" id="resultCard" role="dialog" aria-modal="true">
+      <img id="topWinnerImg" class="topWinner" src="" alt="Winner image" style="display:none;">
+      <div id="twoImgs" class="twoImgs" style="display:none;">
+        <img id="drawImg1" src="" alt="" style="width:120px;height:120px;border-radius:10px;">
+        <img id="drawImg2" src="" alt="" style="width:120px;height:120px;border-radius:10px;">
+      </div>
+      <div id="resultText" class="resultText"></div>
+      <button id="restartBtn" class="restartBtn" onclick="restartGame()" style="margin-top:20px;">Restart</button>
     </div>
-    <div id="resultText" class="resultText"></div>
-    <button id="restartBtn" class="restartBtn" onclick="restartGame()" style="margin-top:20px;">Restart</button>
   </div>
-</div>
 
-<!-- Original Audios -->
-<audio id="solidAudio" src="solid.mp3" preload="auto"></audio>
-<audio id="liquidAudio" src="liquid.mp3" preload="auto"></audio>
-<audio id="gasAudio" src="gas.mp3" preload="auto"></audio>
-<audio id="fightSound" src="Fight.mp3" preload="auto"></audio>
-
-<!-- Added Audios -->
-<audio id="clickSound" src="click.mp3" preload="auto"></audio>
-<audio id="popSound" src="pop.mp3" preload="auto"></audio>
-<audio id="restartSound" src="restart.mp3" preload="auto"></audio>
-
+  <!-- Sounds -->
+  <audio id="solidAudio" src="solid.mp3" preload="auto"></audio>
+  <audio id="liquidAudio" src="liquid.mp3" preload="auto"></audio>
+  <audio id="gasAudio" src="gas.mp3" preload="auto"></audio>
+  <audio id="fightSound" src="Fight.mp3" preload="auto"></audio>
+  <audio id="clickSound" src="click.mp3" preload="auto"></audio>
+  <audio id="popSound" src="pop.mp3" preload="auto"></audio>
+  <audio id="restartSound" src="restart.mp3" preload="auto"></audio>
 </div>
 
 <script>
-  let choices = {1: null, 2: null};
-  let ready = {1:false, 2:false};
-  let controlsDisabled = false;
+let choices = {1: null, 2: null};
+let ready = {1:false, 2:false};
+let controlsDisabled = false;
 
-  function getMatterAudio(m){ return document.getElementById(m + "Audio"); }
+function getMatterAudio(m){ return document.getElementById(m + "Audio"); }
 
-  // 🔹 NEW FUNCTION: Locks the opposite device when nickname is entered
-  function handleNicknameInput(device){
-    const nick1 = document.getElementById('nickname1').value.trim();
-    const nick2 = document.getElementById('nickname2').value.trim();
-    const dev1 = document.getElementById('device1');
-    const dev2 = document.getElementById('device2');
-
-    if(nick1 && !nick2){
-      dev2.classList.add('ui-disabled');
-      dev1.classList.remove('ui-disabled');
-    } else if(nick2 && !nick1){
-      dev1.classList.add('ui-disabled');
-      dev2.classList.remove('ui-disabled');
-    } else {
-      // If both empty, enable both
-      dev1.classList.remove('ui-disabled');
-      dev2.classList.remove('ui-disabled');
-    }
-  }
-
-function pickMatter(device, matter, btn) {
+function pickMatter(device, matter, btn){
   if (controlsDisabled) return;
-
-  // local updates (existing code)
   choices[device] = matter;
   const deviceEl = document.getElementById('device' + device);
   deviceEl.querySelectorAll('.matter-btn').forEach(b => b.classList.remove('selected'));
   if (btn) btn.classList.add('selected');
-  document.getElementById('matterDisplay' + device).innerHTML = `
-    <img src="${matter}.png" alt="${matter}" style="width:110px; height:110px; border-radius:12px;">
-  `;
+  document.getElementById('matterDisplay' + device).innerHTML = `<img src="${matter}.png" alt="${matter}" style="width:110px; height:110px; border-radius:12px;">`;
   document.getElementById('ready' + device).style.display = 'inline-block';
-
   try {
     const a = getMatterAudio(matter);
-    if (a) { a.currentTime = 0; a.play().catch(() => {}); }
-  } catch (e) {}
-
+    if (a) { a.currentTime = 0; a.play().catch(()=>{}); }
+  } catch(e){}
   ready[device] = false;
   document.getElementById('ready' + device).innerText = 'Ready';
-
-  // 👇 ADD THIS PART — tell the server what was chosen
-  socket.emit("matterChosen", {
-    device,
-    matter
-  });
 }
 
+function setReady(device){
+  if (controlsDisabled) return;
+  if (!choices[device]) return;
+  ready[device] = true;
+  const btn = document.getElementById('ready' + device);
+  btn.innerText = 'Ready ✔';
+  btn.disabled = true;
+  if (ready[1] && ready[2]) {
+    lockControlsBeforeCountdown();
+    startCountdown();
+  }
+}
 
-  function setReady(device){
-    if (controlsDisabled) return;
-    if (!choices[device]) return;
-    ready[device] = true;
-    const btn = document.getElementById('ready' + device);
-    btn.innerText = 'Ready ✔';
-    btn.disabled = true;
-    if (ready[1] && ready[2]) {
-      lockControlsBeforeCountdown();
-      startCountdown();
+function lockControlsBeforeCountdown(){
+  document.querySelectorAll('.matter-btn').forEach(b => b.disabled = true);
+  document.getElementById('ready1').disabled = true;
+  document.getElementById('ready2').disabled = true;
+}
+
+function startCountdown(){
+  const cdEl = document.getElementById('countdown');
+  const fightSound = document.getElementById('fightSound');
+  let t = 3;
+  cdEl.innerHTML = `<img src="${t}.png" style="width:200px;">`;
+  cdEl.style.display = 'block';
+  cdEl.style.position = 'fixed';
+  cdEl.style.left = '50%';
+  cdEl.style.top = '50%';
+  cdEl.style.transform = 'translate(-50%, -50%)';
+  try { fightSound.currentTime = 0; fightSound.play().catch(()=>{}); } catch(e){}
+  const interval = setInterval(()=>{
+    t--;
+    if (t > 0) cdEl.innerHTML = `<img src="${t}.png" style="width:200px;">`;
+    else {
+      clearInterval(interval);
+      cdEl.style.display = 'none';
+      showFightPopThenStart();
     }
+  },1000);
+}
+
+function showFightPopThenStart(){
+  const fightImg = document.getElementById('fightImage');
+  fightImg.classList.add('show');
+  setTimeout(()=>{
+    fightImg.classList.remove('show');
+    startBattleSequence();
+  },900);
+}
+
+function startBattleSequence(){
+  if (choices[1]) try { getMatterAudio(choices[1]).currentTime = 0; getMatterAudio(choices[1]).play().catch(()=>{}); } catch(e){}
+  if (choices[2]) try { getMatterAudio(choices[2]).currentTime = 0; getMatterAudio(choices[2]).play().catch(()=>{}); } catch(e){}
+  for (let i=1;i<=2;i++){
+    const img = document.querySelector('#matterDisplay' + i + ' img');
+    if (img){ img.classList.add('shake'); setTimeout(()=> img.classList.remove('shake'),1200); }
   }
+  setTimeout(()=>{ showResult(); },1200);
+}
 
-  function lockControlsBeforeCountdown(){
-    document.querySelectorAll('.matter-btn').forEach(b => b.disabled = true);
-    document.getElementById('ready1').disabled = true;
-    document.getElementById('ready2').disabled = true;
+function determineWinner(m1,m2){
+  const beats={solid:'liquid',liquid:'gas',gas:'solid'};
+  if(!m1||!m2)return{type:'invalid'};
+  if(m1===m2)return{type:'draw',reason:`Both chose ${capitalize(m1)} — neither has advantage.`};
+  if(beats[m1]===m2)return{type:'win',winner:1,matter:m1,loserMatter:m2,reason:`${capitalize(m1)} overcomes ${m2}.`};
+  if(beats[m2]===m1)return{type:'win',winner:2,matter:m2,loserMatter:m1,reason:`${capitalize(m2)} overcomes ${m1}.`};
+  return{type:'draw',reason:'It’s a draw.'};
+}
+
+function showResult(){
+  const pop=document.getElementById('popSound');
+  if(pop){pop.currentTime=0;pop.play().catch(()=>{});}
+  controlsDisabled=true;
+  document.getElementById('mainContent').classList.add('blurred');
+  const overlay=document.getElementById('overlay');
+  overlay.style.display='flex';
+  const res=determineWinner(choices[1],choices[2]);
+  const topImg=document.getElementById('topWinnerImg');
+  const twoImgs=document.getElementById('twoImgs');
+  const drawImg1=document.getElementById('drawImg1');
+  const drawImg2=document.getElementById('drawImg2');
+  const resultText=document.getElementById('resultText');
+  topImg.style.display='none';
+  twoImgs.style.display='none';
+  resultText.innerHTML='';
+
+  const descriptions = {
+    solid: "Solids have tightly packed particles, giving them a fixed shape and volume. They’re strong and stable — that’s why solids can resist being broken apart easily.",
+    liquid: "Liquids have loosely packed particles that can move freely, allowing them to flow and take the shape of their container. They’re adaptable and can overcome some solids by flowing around them.",
+    gas: "Gases have particles that move fast and freely in all directions. They expand to fill any space, representing freedom and high energy."
+  };
+
+  if(res.type==='win'){
+    topImg.src=res.matter+'.png';
+    topImg.style.display='block';
+    resultText.innerHTML= `<b>Device ${res.winner}'s ${capitalize(res.matter)} wins!</b><br>${res.reason}<br><br><span>${descriptions[res.matter]}</span><br><br><i>It wins because ${res.matter} defeats ${res.loserMatter} based on their properties and behavior.</i>`;
+  }else if(res.type==='draw'){
+    drawImg1.src=choices[1]+'.png';
+    drawImg2.src=choices[2]+'.png';
+    twoImgs.style.display='flex';
+    const m=choices[1];
+    resultText.innerHTML= `<b>It’s a Draw!</b><br>${res.reason}<br><br><span>${descriptions[m]}</span><br><br><i>They tie because both have the same matter type with identical characteristics.</i>`;
   }
+  document.getElementById('restartBtn').style.display='inline-block';
+}
 
-  function startCountdown(){
-    const cdEl = document.getElementById('countdown');
-    const fightSound = document.getElementById('fightSound');
-    let t = 3;
-    cdEl.innerHTML = `<img src="${t}.png" style="width:200px;">`;
-    cdEl.style.display = 'block';
-    cdEl.style.position = 'fixed';
-    cdEl.style.left = '50%';
-    cdEl.style.top = '50%';
-    cdEl.style.transform = 'translate(-50%, -50%)';
-    try { fightSound.currentTime = 0; fightSound.play().catch(()=>{}); } catch(e){}
-    const interval = setInterval(()=>{
-      t--;
-      if (t > 0) cdEl.innerHTML = `<img src="${t}.png" style="width:200px;">`;
-      else {
-        clearInterval(interval);
-        cdEl.style.display = 'none';
-        showFightPopThenStart();
-      }
-    },1000);
+function restartGame(){
+  const restart=document.getElementById('restartSound');
+  if(restart){restart.currentTime=0;restart.play().catch(()=>{});}
+  document.getElementById('overlay').style.display='none';
+  document.getElementById('mainContent').classList.remove('blurred');
+  choices={1:null,2:null};ready={1:false,2:false};controlsDisabled=false;
+  for(let i=1;i<=2;i++){
+    document.getElementById('matterDisplay'+i).innerHTML='';
+    document.querySelectorAll('#device'+i+' .matter-btn').forEach(b=>{b.classList.remove('selected');b.disabled=false;});
+    const r=document.getElementById('ready'+i);r.innerText='Ready';r.style.display='none';r.disabled=false;
   }
+}
 
-  function showFightPopThenStart(){
-    const fightImg = document.getElementById('fightImage');
-    fightImg.classList.add('show');
-    setTimeout(()=>{
-      fightImg.classList.remove('show');
-      startBattleSequence();
-    },900);
-  }
-
-  function startBattleSequence(){
-    if (choices[1]) try { getMatterAudio(choices[1]).currentTime = 0; getMatterAudio(choices[1]).play().catch(()=>{}); } catch(e){}
-    if (choices[2]) try { getMatterAudio(choices[2]).currentTime = 0; getMatterAudio(choices[2]).play().catch(()=>{}); } catch(e){}
-    for (let i=1;i<=2;i++){
-      const img = document.querySelector('#matterDisplay' + i + ' img');
-      if (img){ img.classList.add('shake'); setTimeout(()=> img.classList.remove('shake'),1200); }
-    }
-    setTimeout(()=>{ showResult(); },1200);
-  }
-
-  function determineWinner(m1,m2){
-    const beats={solid:'liquid',liquid:'gas',gas:'solid'};
-    if(!m1||!m2)return{type:'invalid'};
-    if(m1===m2)return{type:'draw',reason:`Both chose ${capitalize(m1)} — neither has advantage.`};
-    if(beats[m1]===m2)return{type:'win',winner:1,matter:m1,loserMatter:m2,reason:`${capitalize(m1)} overcomes ${m2}.`};
-    if(beats[m2]===m1)return{type:'win',winner:2,matter:m2,loserMatter:m1,reason:`${capitalize(m2)} overcomes ${m1}.`};
-    return{type:'draw',reason:'It’s a draw.'};
-  }
-
-  function showResult(){
-    const pop=document.getElementById('popSound');
-    if(pop){pop.currentTime=0;pop.play().catch(()=>{});}
-    controlsDisabled=true;
-    document.getElementById('mainContent').classList.add('blurred');
-    const overlay=document.getElementById('overlay');
-    overlay.style.display='flex';
-    const res=determineWinner(choices[1],choices[2]);
-    const topImg=document.getElementById('topWinnerImg');
-    const twoImgs=document.getElementById('twoImgs');
-    const drawImg1=document.getElementById('drawImg1');
-    const drawImg2=document.getElementById('drawImg2');
-    const resultText=document.getElementById('resultText');
-    topImg.style.display='none'; twoImgs.style.display='none'; resultText.innerHTML='';
-
-    const descriptions = {
-      solid: "Solids have tightly packed particles, giving them a fixed shape and volume. They’re strong and stable — that’s why solids can resist being broken apart easily.",
-      liquid: "Liquids have loosely packed particles that can move freely, allowing them to flow and take the shape of their container. They’re adaptable and can overcome some solids by flowing around them.",
-      gas: "Gases have particles that move fast and freely in all directions. They expand to fill any space, representing freedom and high energy."
-    };
-
-    if(res.type==='win'){
-      const winnerName=document.getElementById('nickname'+res.winner).value.trim()||('Device '+res.winner);
-      topImg.src=res.matter+'.png'; topImg.style.display='block';
-      resultText.innerHTML=`
-        <b>${winnerName}'s ${capitalize(res.matter)} wins!</b><br>
-        ${res.reason}<br><br>
-        <span>${descriptions[res.matter]}</span><br><br>
-        <i>It wins because ${res.matter} defeats ${res.loserMatter} based on their properties and behavior.</i>
-      `;
-    }else if(res.type==='draw'){
-      drawImg1.src=choices[1]+'.png';drawImg2.src=choices[2]+'.png';twoImgs.style.display='flex';
-      const m=choices[1];
-      resultText.innerHTML=`
-        <b>It’s a Draw!</b><br>
-        ${res.reason}<br><br>
-        <span>${descriptions[m]}</span><br><br>
-        <i>They tie because both have the same matter type with identical characteristics.</i>
-      `;
-    }
-    document.getElementById('restartBtn').style.display='inline-block';
-  }
-
-  function restartGame(){
-    const restart=document.getElementById('restartSound');
-    if(restart){restart.currentTime=0;restart.play().catch(()=>{});}
-    document.getElementById('overlay').style.display='none';
-    document.getElementById('mainContent').classList.remove('blurred');
-    choices={1:null,2:null};ready={1:false,2:false};controlsDisabled=false;
-    for(let i=1;i<=2;i++){
-      document.getElementById('matterDisplay'+i).innerHTML='';
-      document.querySelectorAll('#device'+i+' .matter-btn').forEach(b=>{b.classList.remove('selected');b.disabled=false;});
-      const r=document.getElementById('ready'+i);r.innerText='Ready';r.style.display='none';r.disabled=false;
-    }
-  }
-
-  function capitalize(str){return str.charAt(0).toUpperCase()+str.slice(1);}
-
-  // click sound
-  document.addEventListener('click',()=>{
-    const clickSound=document.getElementById('clickSound');
-    if(clickSound){clickSound.currentTime=0;clickSound.play().catch(()=>{});}
-  });
-
-  // 🔹 Watch nickname fields for changes to toggle device lock
-  document.getElementById('nickname1').addEventListener('input',()=>handleNicknameInput(1));
-  document.getElementById('nickname2').addEventListener('input',()=>handleNicknameInput(2));
+function capitalize(str){return str.charAt(0).toUpperCase()+str.slice(1);}
+document.addEventListener('click',()=>{ const clickSound=document.getElementById('clickSound'); if(clickSound){clickSound.currentTime=0;clickSound.play().catch(()=>{});} });
 </script>
-
 </body>
 </html>
