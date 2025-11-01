@@ -269,6 +269,9 @@ h1{
 </div>
 
 <script>
+/* ✅ SOCKET.IO ADDED */
+const socket = io(); // connects to server
+
 let choices = {1: null, 2: null};
 let ready = {1:false, 2:false};
 let controlsDisabled = false;
@@ -286,12 +289,10 @@ function pickMatter(device, matter, btn){
   deviceEl.querySelectorAll('.matter-btn').forEach(b => b.classList.remove('selected'));
   if (btn) btn.classList.add('selected');
 
-  // hide highlight instantly after click
   if (btn) setTimeout(() => btn.classList.remove('selected'), 10);
 
-  // MODIFIED: do NOT show immediately — store it first
   pendingDisplay[device] = `<img src="${matter}.png" alt="${matter}" style="width:110px; height:110px; border-radius:12px;">`;
-  document.getElementById('matterDisplay' + device).innerHTML = ""; // ADDED: hide selection
+  document.getElementById('matterDisplay' + device).innerHTML = ""; 
 
   document.getElementById('ready' + device).style.display = 'inline-block';
   try {
@@ -300,7 +301,11 @@ function pickMatter(device, matter, btn){
   } catch(e){}
   ready[device] = false;
   document.getElementById('ready' + device).innerText = 'Ready';
+
+  /* ✅ SEND PICK TO SERVER */
+  socket.emit("pick", { device, matter });
 }
+
 // ✅ NEW — lock one device after pressing Ready
 function lockDevice(device){
   const dev = document.getElementById('device' + device);
@@ -317,19 +322,21 @@ function setReady(device){
   const btn = document.getElementById('ready' + device);
   btn.innerText = 'Ready ✔';
   btn.disabled = true;
-  // ✅ Lock this player's controls after pressing Ready
-lockDevice(device);
+
+  lockDevice(device);
 
   if (ready[1] && ready[2]) {
-    
-    // ADDED: show picks only after both ready
     document.getElementById('matterDisplay1').innerHTML = pendingDisplay[1];
     document.getElementById('matterDisplay2').innerHTML = pendingDisplay[2];
 
     lockControlsBeforeCountdown();
     startCountdown();
   }
+
+  /* ✅ INFORM SERVER READY */
+  socket.emit("playerReady", device);
 }
+
 // ✅ NEW — unlock one device
 function unlockDevice(device){
   const dev = document.getElementById('device' + device);
@@ -384,7 +391,6 @@ function startBattleSequence(){
     if (img){ img.classList.add('shake'); setTimeout(()=> img.classList.remove('shake'),1200); }
   }
 
-  // ✅ Unlock both devices when battle sequence starts
   unlockDevice(1);
   unlockDevice(2);
 
@@ -443,17 +449,36 @@ function restartGame(){
   document.getElementById('overlay').style.display='none';
   document.getElementById('mainContent').classList.remove('blurred');
   choices={1:null,2:null};ready={1:false,2:false};controlsDisabled=false;
-  pendingDisplay={1:null,2:null}; // ADDED RESET
+  pendingDisplay={1:null,2:null};
 
   for(let i=1;i<=2;i++){
     document.getElementById('matterDisplay'+i).innerHTML='';
     document.querySelectorAll('#device'+i+' .matter-btn').forEach(b=>{b.classList.remove('selected');b.disabled=false;});
     const r=document.getElementById('ready'+i);r.innerText='Ready';r.style.display='none';r.disabled=false;
   }
+
+  /* ✅ RESET SERVER STATE */
+  socket.emit("restart");
 }
 
 function capitalize(str){return str.charAt(0).toUpperCase()+str.slice(1);}
 document.addEventListener('click',()=>{ const clickSound=document.getElementById('clickSound'); if(clickSound){clickSound.currentTime=0;clickSound.play().catch(()=>{});} });
+
+
+/* ✅ SOCKET.IO GAME EVENTS — ADDED */
+socket.on("bothPicked", ({ p1, p2 }) => {
+  choices[1] = p1;
+  choices[2] = p2;
+
+  pendingDisplay[1] = `<img src="${p1}.png" style="width:110px; height:110px;">`;
+  pendingDisplay[2] = `<img src="${p2}.png" style="width:110px; height:110px;">`;
+
+  document.getElementById('matterDisplay1').innerHTML = pendingDisplay[1];
+  document.getElementById('matterDisplay2').innerHTML = pendingDisplay[2];
+
+  lockControlsBeforeCountdown();
+  startCountdown();
+});
 </script>
 </body>
 </html>
