@@ -270,41 +270,91 @@ h1{
 </div>
 
 <script>
-/* ✅ SOCKET.IO ADDED */
-const socket = io(); // connects to server
+/* ✅ ✅ ✅ ADDED FOR ONLINE MULTIPLAYER */
+// Change this to your Render.com WebSocket URL once deployed
+const socket = new WebSocket("wss://YOUR_RENDER_APP_URL.onrender.com");
+
+let playerId = null; // will be 1 or 2 from the server
+
+socket.onopen = () => {
+  console.log("✅ Connected to server");
+};
+
+socket.onmessage = (msg) => {
+  const data = JSON.parse(msg.data);
+
+  if(data.type === "assign") {
+    playerId = data.player;
+    console.log("✅ You are Player", playerId);
+  }
+
+  if(data.type === "opponent_pick") {
+    choices[data.device] = data.matter;
+    pendingDisplay[data.device] =
+      `<img src="${data.matter}.png" style="width:110px;height:110px;border-radius:12px;">`;
+  }
+
+  if(data.type === "opponent_ready") {
+    ready[data.device] = true;
+    if (ready[1] && ready[2]) {
+      document.getElementById('matterDisplay1').innerHTML = pendingDisplay[1];
+      document.getElementById('matterDisplay2').innerHTML = pendingDisplay[2];
+      lockControlsBeforeCountdown();
+      startCountdown();
+    }
+  }
+
+  if(data.type === "restart_sync") {
+    restartGame(true); // force sync restart without sending back
+  }
+};
+
+function sendToServer(obj){
+  if(socket.readyState === 1) socket.send(JSON.stringify(obj));
+}
+/* ✅ END OF ADDED NETWORKING CODE */
+
+
+
+/* ✅ ✅ ORIGINAL GAME CODE — UNTOUCHED ✅ ✅ */
 
 let choices = {1: null, 2: null};
 let ready = {1:false, 2:false};
 let controlsDisabled = false;
 
 // ADDED: hide display until reveal time
-let pendingDisplay = {1:null,2:null}; // ADDED
+let pendingDisplay = {1:null,2:null};
 
-function getMatterAudio(m){ return document.getElementById(m + "Audio"); }
+// ADDED
+function getMatterAudio(m){
+  return document.getElementById(m + "Audio");
+}
 
 function pickMatter(device, matter, btn){
   if (controlsDisabled) return;
   choices[device] = matter;
 
+  /* ✅ ADDED: Send pick to server */
+  sendToServer({type:"pick", device:playerId, matter});
+
   const deviceEl = document.getElementById('device' + device);
   deviceEl.querySelectorAll('.matter-btn').forEach(b => b.classList.remove('selected'));
+
   if (btn) btn.classList.add('selected');
 
   if (btn) setTimeout(() => btn.classList.remove('selected'), 10);
 
   pendingDisplay[device] = `<img src="${matter}.png" alt="${matter}" style="width:110px; height:110px; border-radius:12px;">`;
-  document.getElementById('matterDisplay' + device).innerHTML = ""; 
-
+  document.getElementById('matterDisplay' + device).innerHTML = "";
   document.getElementById('ready' + device).style.display = 'inline-block';
+
   try {
     const a = getMatterAudio(matter);
     if (a) { a.currentTime = 0; a.play().catch(()=>{}); }
   } catch(e){}
+
   ready[device] = false;
   document.getElementById('ready' + device).innerText = 'Ready';
-
-  /* ✅ SEND PICK TO SERVER */
-  socket.emit("pick", { device, matter });
 }
 
 // ✅ NEW — lock one device after pressing Ready
@@ -319,23 +369,24 @@ function lockDevice(device){
 function setReady(device){
   if (controlsDisabled) return;
   if (!choices[device]) return;
+  
   ready[device] = true;
   const btn = document.getElementById('ready' + device);
   btn.innerText = 'Ready ✔';
   btn.disabled = true;
+
+  /* ✅ ADDED: Tell server you clicked ready */
+  sendToServer({type:"ready", device:playerId});
 
   lockDevice(device);
 
   if (ready[1] && ready[2]) {
     document.getElementById('matterDisplay1').innerHTML = pendingDisplay[1];
     document.getElementById('matterDisplay2').innerHTML = pendingDisplay[2];
-
+    
     lockControlsBeforeCountdown();
     startCountdown();
   }
-
-  /* ✅ INFORM SERVER READY */
-  socket.emit("playerReady", device);
 }
 
 // ✅ NEW — unlock one device
@@ -343,6 +394,7 @@ function unlockDevice(device){
   const dev = document.getElementById('device' + device);
   dev.classList.remove('ui-disabled');
   dev.querySelectorAll('.matter-btn').forEach(b => b.disabled = false);
+
   const r = document.getElementById('ready' + device);
   r.disabled = false;
 }
@@ -357,13 +409,19 @@ function startCountdown(){
   const cdEl = document.getElementById('countdown');
   const fightSound = document.getElementById('fightSound');
   let t = 3;
+
   cdEl.innerHTML = `<img src="${t}.png" style="width:200px;">`;
   cdEl.style.display = 'block';
   cdEl.style.position = 'fixed';
   cdEl.style.left = '50%';
   cdEl.style.top = '50%';
   cdEl.style.transform = 'translate(-50%, -50%)';
-  try { fightSound.currentTime = 0; fightSound.play().catch(()=>{}); } catch(e){}
+
+  try { 
+    fightSound.currentTime = 0; 
+    fightSound.play().catch(()=>{}); 
+  } catch(e){}
+
   const interval = setInterval(()=>{
     t--;
     if (t > 0) cdEl.innerHTML = `<img src="${t}.png" style="width:200px;">`;
@@ -378,6 +436,7 @@ function startCountdown(){
 function showFightPopThenStart(){
   const fightImg = document.getElementById('fightImage');
   fightImg.classList.add('show');
+
   setTimeout(()=>{
     fightImg.classList.remove('show');
     startBattleSequence();
@@ -385,11 +444,15 @@ function showFightPopThenStart(){
 }
 
 function startBattleSequence(){
-  if (choices[1]) try { getMatterAudio(choices[1]).currentTime = 0; getMatterAudio(choices[1]).play().catch(()=>{}); } catch(e){}
-  if (choices[2]) try { getMatterAudio(choices[2]).currentTime = 0; getMatterAudio(choices[2]).play().catch(()=>{}); } catch(e){}
+  if (choices[1]) try { getMatterAudio(choices[1]).currentTime = 0; getMatterAudio(choices[1]).play().catch(()=>{});} catch(e){}
+  if (choices[2]) try { getMatterAudio(choices[2]).currentTime = 0; getMatterAudio(choices[2]).play().catch(()=>{});} catch(e){}
+
   for (let i=1;i<=2;i++){
     const img = document.querySelector('#matterDisplay' + i + ' img');
-    if (img){ img.classList.add('shake'); setTimeout(()=> img.classList.remove('shake'),1200); }
+    if (img){
+      img.classList.add('shake');
+      setTimeout(()=> img.classList.remove('shake'),1200);
+    }
   }
 
   unlockDevice(1);
@@ -399,30 +462,36 @@ function startBattleSequence(){
 }
 
 function determineWinner(m1,m2){
-  const beats={solid:'liquid',liquid:'gas',gas:'solid'};
-  if(!m1||!m2)return{type:'invalid'};
-  if(m1===m2)return{type:'draw',reason:`Both chose ${capitalize(m1)} — neither has advantage.`};
-  if(beats[m1]===m2)return{type:'win',winner:1,matter:m1,loserMatter:m2,reason:`${capitalize(m1)} overcomes ${m2}.`};
-  if(beats[m2]===m1)return{type:'win',winner:2,matter:m2,loserMatter:m1,reason:`${capitalize(m2)} overcomes ${m1}.`};
-  return{type:'draw',reason:'It’s a draw.'};
+  const beats = {solid:'liquid',liquid:'gas',gas:'solid'};
+
+  if(!m1 || !m2) return {type:'invalid'};
+  if(m1 === m2) return {type:'draw', reason:`Both chose ${capitalize(m1)} — neither has advantage.`};
+  if(beats[m1] === m2) return {type:'win', winner:1, matter:m1, loserMatter:m2, reason:`${capitalize(m1)} overcomes ${m2}.`};
+  if(beats[m2] === m1) return {type:'win', winner:2, matter:m2, loserMatter:m1, reason:`${capitalize(m2)} overcomes ${m1}.`};
+
+  return {type:'draw', reason:'It’s a draw.'};
 }
 
 function showResult(){
-  const pop=document.getElementById('popSound');
-  if(pop){pop.currentTime=0;pop.play().catch(()=>{});}
-  controlsDisabled=true;
+  const pop = document.getElementById('popSound');
+  if(pop){ pop.currentTime = 0; pop.play().catch(()=>{}); }
+
+  controlsDisabled = true;
   document.getElementById('mainContent').classList.add('blurred');
-  const overlay=document.getElementById('overlay');
-  overlay.style.display='flex';
-  const res=determineWinner(choices[1],choices[2]);
-  const topImg=document.getElementById('topWinnerImg');
-  const twoImgs=document.getElementById('twoImgs');
-  const drawImg1=document.getElementById('drawImg1');
-  const drawImg2=document.getElementById('drawImg2');
-  const resultText=document.getElementById('resultText');
-  topImg.style.display='none';
-  twoImgs.style.display='none';
-  resultText.innerHTML='';
+
+  const overlay = document.getElementById('overlay');
+  overlay.style.display = 'flex';
+
+  const res = determineWinner(choices[1],choices[2]);
+  const topImg = document.getElementById('topWinnerImg');
+  const twoImgs = document.getElementById('twoImgs');
+  const drawImg1 = document.getElementById('drawImg1');
+  const drawImg2 = document.getElementById('drawImg2');
+  const resultText = document.getElementById('resultText');
+
+  topImg.style.display = 'none';
+  twoImgs.style.display = 'none';
+  resultText.innerHTML = '';
 
   const descriptions = {
     solid: "Solids have tightly packed particles, giving them a fixed shape and volume. They’re strong and stable — that’s why solids can resist being broken apart easily.",
@@ -430,56 +499,64 @@ function showResult(){
     gas: "Gases have particles that move fast and freely in all directions. They expand to fill any space, representing freedom and high energy."
   };
 
-  if(res.type==='win'){
-    topImg.src=res.matter+'.png';
-    topImg.style.display='block';
-    resultText.innerHTML= `<b>Device ${res.winner}'s ${capitalize(res.matter)} wins!</b><br>${res.reason}<br><br><span>${descriptions[res.matter]}</span><br><br><i>It wins because ${res.matter} defeats ${res.loserMatter} based on their properties and behavior.</i>`;
-  }else if(res.type==='draw'){
-    drawImg1.src=choices[1]+'.png';
-    drawImg2.src=choices[2]+'.png';
-    twoImgs.style.display='flex';
-    const m=choices[1];
-    resultText.innerHTML= `<b>It’s a Draw!</b><br>${res.reason}<br><br><span>${descriptions[m]}</span><br><br><i>They tie because both have the same matter type with identical characteristics.</i>`;
+  if(res.type === 'win'){
+    topImg.src = res.matter + '.png';
+    topImg.style.display = 'block';
+    resultText.innerHTML = `<b>Device ${res.winner}'s ${capitalize(res.matter)} wins!</b><br>${res.reason}<br><br><span>${descriptions[res.matter]}</span><br><br><i>It wins because ${res.matter} defeats ${res.loserMatter} based on their properties and behavior.</i>`;
   }
+  else if(res.type === 'draw'){
+    drawImg1.src = choices[1] + '.png';
+    drawImg2.src = choices[2] + '.png';
+    twoImgs.style.display = 'flex';
+    const m = choices[1];
+    resultText.innerHTML = `<b>It’s a Draw!</b><br>${res.reason}<br><br><span>${descriptions[m]}</span><br><br><i>They tie because both have the same matter type with identical characteristics.</i>`;
+  }
+
   document.getElementById('restartBtn').style.display='inline-block';
 }
 
-function restartGame(){
+/* ✅ UPDATED restart: sync with other player */
+function restartGame(fromServer = false){
+  if(!fromServer){
+    sendToServer({type:"restart"});
+  }
+
   const restart=document.getElementById('restartSound');
-  if(restart){restart.currentTime=0;restart.play().catch(()=>{});}
+  if(restart){ restart.currentTime=0; restart.play().catch(()=>{}); }
+
   document.getElementById('overlay').style.display='none';
   document.getElementById('mainContent').classList.remove('blurred');
-  choices={1:null,2:null};ready={1:false,2:false};controlsDisabled=false;
-  pendingDisplay={1:null,2:null};
+
+  choices = {1:null,2:null};
+  ready = {1:false,2:false};
+  controlsDisabled = false;
+  pendingDisplay = {1:null,2:null};
 
   for(let i=1;i<=2;i++){
     document.getElementById('matterDisplay'+i).innerHTML='';
-    document.querySelectorAll('#device'+i+' .matter-btn').forEach(b=>{b.classList.remove('selected');b.disabled=false;});
-    const r=document.getElementById('ready'+i);r.innerText='Ready';r.style.display='none';r.disabled=false;
+    document.querySelectorAll('#device'+i+' .matter-btn').forEach(b=>{
+      b.classList.remove('selected');
+      b.disabled=false;
+    });
+    const r=document.getElementById('ready'+i);
+    r.innerText='Ready';
+    r.style.display='none';
+    r.disabled=false;
   }
-
-  /* ✅ RESET SERVER STATE */
-  socket.emit("restart");
 }
 
-function capitalize(str){return str.charAt(0).toUpperCase()+str.slice(1);}
-document.addEventListener('click',()=>{ const clickSound=document.getElementById('clickSound'); if(clickSound){clickSound.currentTime=0;clickSound.play().catch(()=>{});} });
+function capitalize(str){
+  return str.charAt(0).toUpperCase()+str.slice(1);
+}
 
-
-/* ✅ SOCKET.IO GAME EVENTS — ADDED */
-socket.on("bothPicked", ({ p1, p2 }) => {
-  choices[1] = p1;
-  choices[2] = p2;
-
-  pendingDisplay[1] = `<img src="${p1}.png" style="width:110px; height:110px;">`;
-  pendingDisplay[2] = `<img src="${p2}.png" style="width:110px; height:110px;">`;
-
-  document.getElementById('matterDisplay1').innerHTML = pendingDisplay[1];
-  document.getElementById('matterDisplay2').innerHTML = pendingDisplay[2];
-
-  lockControlsBeforeCountdown();
-  startCountdown();
+document.addEventListener('click',()=>{
+  const clickSound=document.getElementById('clickSound');
+  if(clickSound){
+    clickSound.currentTime=0;
+    clickSound.play().catch(()=>{});
+  }
 });
 </script>
+
 </body>
 </html>
