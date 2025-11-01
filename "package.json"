@@ -1,0 +1,14 @@
+{
+  "name": "matter-clash-online",
+  "version": "1.0.0",
+  "description": "Multiplayer Matter Clash Game",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  }
+}
