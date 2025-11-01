@@ -330,6 +330,14 @@ lockDevice(device);
     startCountdown();
   }
 }
+// ✅ NEW — unlock one device
+function unlockDevice(device){
+  const dev = document.getElementById('device' + device);
+  dev.classList.remove('ui-disabled');
+  dev.querySelectorAll('.matter-btn').forEach(b => b.disabled = false);
+  const r = document.getElementById('ready' + device);
+  r.disabled = false;
+}
 
 function lockControlsBeforeCountdown(){
   document.querySelectorAll('.matter-btn').forEach(b => b.disabled = true);
@@ -375,6 +383,11 @@ function startBattleSequence(){
     const img = document.querySelector('#matterDisplay' + i + ' img');
     if (img){ img.classList.add('shake'); setTimeout(()=> img.classList.remove('shake'),1200); }
   }
+
+  // ✅ Unlock both devices when battle sequence starts
+  unlockDevice(1);
+  unlockDevice(2);
+
   setTimeout(()=>{ showResult(); },1200);
 }
 
