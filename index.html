@@ -301,6 +301,14 @@ function pickMatter(device, matter, btn){
   ready[device] = false;
   document.getElementById('ready' + device).innerText = 'Ready';
 }
+// ✅ NEW — lock one device after pressing Ready
+function lockDevice(device){
+  const dev = document.getElementById('device' + device);
+  dev.classList.add('ui-disabled');
+  dev.querySelectorAll('.matter-btn').forEach(b => b.disabled = true);
+  const r = document.getElementById('ready' + device);
+  r.disabled = true;
+}
 
 function setReady(device){
   if (controlsDisabled) return;
@@ -309,6 +317,9 @@ function setReady(device){
   const btn = document.getElementById('ready' + device);
   btn.innerText = 'Ready ✔';
   btn.disabled = true;
+  // ✅ Lock this player's controls after pressing Ready
+lockDevice(device);
+
   if (ready[1] && ready[2]) {
     
     // ADDED: show picks only after both ready
